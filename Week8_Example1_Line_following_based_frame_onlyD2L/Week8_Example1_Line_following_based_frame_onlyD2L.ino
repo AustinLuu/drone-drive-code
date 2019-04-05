@@ -3,11 +3,11 @@
 #include "MEC733_I_O.h"
 #include <USART.h>
 
-uint16_t Line1, Line2, Line3, Line4, Dis_left, Dis_center, Dis_right;
+uint16_t Dis_left, Dis_center, Dis_right;
 uint16_t threshold_table = 650,  threshold_blackTape = 850, threshold_wall = 300, counter = 0;
-int left_en_total = 0, right_en_total = 0, base_speed = 550;
+int left_en_total = 0, right_en_total = 0, base_speed = 550, left_speed, right_speed, Dis_right_avg, Dis_left_avg;
 int left_en_cur, right_en_cur, left_en_pre, right_en_pre;
-int c, e, r = 0, p = 10;
+int c, r = 0, p = 10;
 
 /////////////////////////
 /////////////////////////
@@ -24,15 +24,30 @@ right_en_total = 0;
 left_en_pre = PINC & (1 << PINC2);
 right_en_pre = PINC & (1 << PINC3);
 
-motor(base_speed, base_speed);
+left_speed=550;
+right_speed=550;
 
-while (i)//drive code
+motor(left_speed, right_speed);
+
+for (i = 0; i < 50; i++){//initial feedback code 
+  Dis_left+=analog(4); 
+  Dis_right+=analog(6);
+}
+Dis_left_avg=Dis_left/50;
+Dis_right_avg=Dis_right/50;
+
+while (1)//drive code
 { 
+  for (i = 0; i < 50; i++){//initial feedback code 
+    Dis_left+=analog(4); 
+    Dis_right+=analog(6);
+  }
+  Dis_left=Dis_left/50;
+  Dis_right=Dis_right/50;
 
   left_en_cur = PINC & (1 << PINC2);
   right_en_cur = PINC & (1 << PINC3);
   c = left_en_total - right_en_total;
-  e = r - c;
 
   if (left_en_cur != left_en_pre){
     left_en_total++;
@@ -44,16 +59,61 @@ while (i)//drive code
     right_en_pre = right_en_cur;
   }
 
+/*  if ((100>(Dis_left-Dis_left_avg) && (100>(Dis_right_avg-Dis_right))) //Moving to left too much: big Change 
+  {
+    left_speed+=20;
+    right_speed-=20;
+  }
+
+  else if((50>(Dis_left-Dis_left_avg)) && (50>(Dis_right_avg-Dis_right)))//Small Change
+  {
+    left_speed+=10;
+    right_speed-=10;
+  }
+
+  if ((100>(Dis_right-Dis_right_avg) && (100>(Dis_left_avg-Dis_left))) //Moving to right too much: big Change 
+  {
+    left_speed-=20;
+    right_speed+=20;
+  }
+
+  else if((50>(Dis_right-Dis_right_avg)) && (50>(Dis_left_avg-Dis_left)))//Small Change
+  {
+    left_speed-=10;
+    right_speed+=10;
+  }*/
+
+  Dis_left_avg=Dis_left;
+  Dis_right_avg=Dis_right;
+
   if ((left_en_total >= dist) && (right_en_total >= dist)){ 
     motor(0, 0); 
     break;
   }
   
   if (e != 0){
-    motor(base_speed-e*p, base_speed+e*p)
+    left_speed-=(c*p);
+    right_speed+=(c*p);
+    motor(left_speed, right_speed);
+    delay_ms(30);
   }
 
-  }
+}
+
+/*  while(1){
+    
+    motor(left_speed, right_speed);
+    
+    for (i = 0; i < 30; i++){//initial feedback code 
+      Dis_center+=analog(5); 
+    }
+    
+    Dis_center=Dis_center/50;
+    
+    if (Dis_center > threshold_wall){//close enough
+      break;
+    }
+  }*/
 }
 
 /////////////////////////
