@@ -1,13 +1,13 @@
-#include <mechbotShield.h>
+#include "mechbotShield.h"
 #include <avr/io.h>
 #include "MEC733_I_O.h"
-#include <USART.h>
+#include "USART.h"
 
 uint16_t Dis_left, Dis_center, Dis_right;
-uint16_t threshold_table = 650,  threshold_blackTape = 850, threshold_wall = 300, counter = 0;
-int left_en_total = 0, right_en_total = 0, base_speed = 550, left_speed, right_speed, Dis_right_avg, Dis_left_avg;
+uint16_t threshold_table = 650,  threshold_blackTape = 850, threshold_wall = 275, threshold_wall_c = 350, counter = 0;
+int left_en_total = 0, right_en_total = 0, base_speed = 400, left_speed, right_speed, Dis_right_avg, Dis_left_avg;
 int left_en_cur, right_en_cur, left_en_pre, right_en_pre;
-int c, r = 0, p = 10;
+int c, r = 0, p = 5;  
 
 /////////////////////////
 /////////////////////////
@@ -24,26 +24,40 @@ right_en_total = 0;
 left_en_pre = PINC & (1 << PINC2);
 right_en_pre = PINC & (1 << PINC3);
 
-left_speed=550;
-right_speed=550;
+left_speed=400;
+right_speed=400;
 
 motor(left_speed, right_speed);
 
-for (i = 0; i < 50; i++){//initial feedback code 
-  Dis_left+=analog(4); 
-  Dis_right+=analog(6);
-}
-Dis_left_avg=Dis_left/50;
-Dis_right_avg=Dis_right/50;
+// for (int i = 0; i < 50; i++){//initial feedback code 
+//   Dis_left+=analog(4); 
+//   Dis_right+=analog(6);
+// }
+// Dis_left_avg=Dis_left/50;
+// Dis_right_avg=Dis_right/50;
 
 while (1)//drive code
 { 
-  for (i = 0; i < 50; i++){//initial feedback code 
-    Dis_left+=analog(4); 
-    Dis_right+=analog(6);
+  // for (int i = 0; i < 50; i++){//initial feedback code 
+  //   Dis_left+=analog(4); 
+  //   Dis_right+=analog(6);
+  // }
+  // Dis_left=Dis_left/50;
+  // Dis_right=Dis_right/50;
+  
+  Dis_right=analog(6);
+  Dis_center=analog(5);
+  
+  if ((Dis_right-threshold_wall)>35)
+  {
+    left_speed=left_speed-p;
+    right_speed=right_speed+p;
   }
-  Dis_left=Dis_left/50;
-  Dis_right=Dis_right/50;
+  else if ((Dis_right-threshold_wall)<(-35))
+  {
+    left_speed=left_speed+p;
+    right_speed=right_speed-p;
+  }
 
   left_en_cur = PINC & (1 << PINC2);
   right_en_cur = PINC & (1 << PINC3);
@@ -76,27 +90,28 @@ while (1)//drive code
     left_speed-=20;
     right_speed+=20;
   }
-
+  
   else if((50>(Dis_right-Dis_right_avg)) && (50>(Dis_left_avg-Dis_left)))//Small Change
   {
     left_speed-=10;
     right_speed+=10;
   }*/
 
-  Dis_left_avg=Dis_left;
-  Dis_right_avg=Dis_right;
+  // Dis_left_avg=Dis_left;
+  // Dis_right_avg=Dis_right;
+  delay_ms(20);
 
-  if ((left_en_total >= dist) && (right_en_total >= dist)){ 
+  if (((Dis_center-threshold_wall_c)>-50)&&((left_en_total >= dist) && (right_en_total >= dist))){ 
     motor(0, 0); 
     break;
   }
   
-  if (e != 0){
-    left_speed-=(c*p);
-    right_speed+=(c*p);
-    motor(left_speed, right_speed);
-    delay_ms(30);
-  }
+  // if (c != 0){
+  //   left_speed-=(c*p);
+  //   right_speed+=(c*p);
+  //   motor(left_speed, right_speed);
+  //   delay_ms(30);
+  // }
 
 }
 
@@ -104,7 +119,7 @@ while (1)//drive code
     
     motor(left_speed, right_speed);
     
-    for (i = 0; i < 30; i++){//initial feedback code 
+    for (int i = 0; i < 30; i++){//initial feedback code 
       Dis_center+=analog(5); 
     }
     
